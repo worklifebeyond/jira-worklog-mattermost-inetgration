@@ -1,5 +1,5 @@
 import * as dotenv from 'dotenv';
-import { DatabaseObject } from './config.object';
+import { ConfigObject } from './config.object';
 
 enum Environments {
   DEVELOPMENT = 'development',
@@ -8,7 +8,7 @@ enum Environments {
 
 export class ConfigService {
 
-  databaseConfig: DatabaseObject;
+  configObject: ConfigObject;
   environment: Environments;
 
   constructor() {
@@ -16,14 +16,14 @@ export class ConfigService {
     if (ENVIRONMENTS.NODE_ENV !== 'production') {
       dotenv.config();
       this.environment = Environments.PRODUCTION;
-      this.databaseConfig = {
+      this.configObject = {
         jiraHost: ENVIRONMENTS.JIRA_HOST,
         jiraUser: ENVIRONMENTS.JIRA_USER,
         jiraPass: ENVIRONMENTS.JIRA_PASS,
       };
     } else {
       this.environment = Environments.DEVELOPMENT;
-      this.databaseConfig = {
+      this.configObject = {
         jiraHost: ENVIRONMENTS.JIRA_HOST,
         jiraUser: ENVIRONMENTS.JIRA_USER,
         jiraPass: ENVIRONMENTS.JIRA_PASS,
@@ -32,8 +32,8 @@ export class ConfigService {
 
   }
 
-  getDbConfig(): DatabaseObject {
-    return this.databaseConfig;
+  getConfig(): ConfigObject {
+    return this.configObject;
   }
 
   getEnvironment(): string {
