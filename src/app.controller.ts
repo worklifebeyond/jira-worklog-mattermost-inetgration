@@ -1,10 +1,16 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { AppService } from './app.service';
 import { OutgoingDto } from './outgoing.dto';
+import { IncomingDto } from './incoming.dto';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {
+  }
+
+  @Post('/add')
+  async addNewLogTime(@Body() incomingDto: IncomingDto) {
+    return this.appService.pushNewLogTime(incomingDto);
   }
 
   @Post('/today')

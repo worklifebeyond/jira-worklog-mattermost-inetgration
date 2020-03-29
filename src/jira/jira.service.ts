@@ -2,6 +2,7 @@ import { HttpService, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '../config/config.service';
 import * as moment from 'moment';
 import * as ms from 'ms';
+import { IncomingDto } from '../incoming.dto';
 
 @Injectable()
 export class JiraService {
@@ -16,6 +17,16 @@ export class JiraService {
 
       return config;
     });
+  }
+
+  async pushToMatterMost(incomingDto: IncomingDto): Promise<any> {
+    const url = this.configService.getConfig().logTimeWebHook;
+    await this.httpService.post(url, {
+      text: `####  ${incomingDto.author} menambahkan LogTime baru!\n**Comment:**  ${incomingDto.comment}\n**Time spent:** ${ms(incomingDto.timeSpentSeconds * 1000)}`,
+    }).toPromise();
+    const payload = await this.getTodayWorkLogs(incomingDto.author);
+    await this.httpService.post(url, {text: payload.text}).toPromise();
+    return { message: 'ok' };
   }
 
   async getTodayIssue(author: string): Promise<any> {
@@ -59,6 +70,7 @@ export class JiraService {
 
       workLogs = workLogs.filter((item) => item.author.name === author);
       workLogs = workLogs.filter((item) => moment.utc().isSame(moment.utc(item.started), 'day'));
+      workLogs = workLogs.reverse();
 
       let totalSpentToday = 0;
       let avatar = '';
