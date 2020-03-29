@@ -5,5 +5,6 @@ import { ConfigModule } from 'src/config/config.module';
 @Module({
   imports: [HttpModule, ConfigModule],
   providers: [JiraService],
+  exports: [JiraService],
 })
 export class JiraModule {}

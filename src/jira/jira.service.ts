@@ -1,5 +1,7 @@
 import { HttpService, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '../config/config.service';
+import * as moment from 'moment';
+import * as ms from 'ms';
 
 @Injectable()
 export class JiraService {
@@ -18,10 +20,11 @@ export class JiraService {
 
   async getTodayIssue(author: string): Promise<any> {
     try {
-      const url = `${this.configService.getConfig().jiraHost}/rest/api/2/search?jql=worklogDate >= 1d and worklogAuthor = ${author}`;
+      const url = `${this.configService.getConfig().jiraHost}/rest/api/2/search?jql=worklogDate >= 0d and worklogAuthor = ${author}`;
       const response = await this.httpService.get(url).toPromise();
       return response.data.issues;
     } catch (e) {
+      console.log('[GET TODAY ISSUE] ERR ', e);
       throw new UnauthorizedException();
     }
   }
@@ -32,22 +35,72 @@ export class JiraService {
       const response = await this.httpService.get(url).toPromise();
       return response.data.worklogs;
     } catch (e) {
+      console.log('[GET WORK LOGS] ERR ', e);
       throw new UnauthorizedException();
     }
   }
 
   async getTodayWorkLogs(author: string): Promise<any> {
     try {
-      const workLogs = [];
+      let workLogs = [];
       const issues = await this.getTodayIssue(author);
-      issues.foreach(async (item, i) => {
-        const issueWorkLog = await this.getWorkLogs(item.key);
+
+      for (const item of issues) {
+        let issueWorkLog = await this.getWorkLogs(item.key);
+        issueWorkLog = issueWorkLog.map((wl) => {
+          wl.issueKey = item.key;
+          wl.issueName = item.fields.summary;
+          wl.project = item.fields.project.name;
+
+          return wl;
+        });
         workLogs.push(...issueWorkLog);
-      });
-      workLogs.filter((item) => item.author.name === author);
-      return workLogs;
+      }
+
+      workLogs = workLogs.filter((item) => item.author.name === author);
+      workLogs = workLogs.filter((item) => moment.utc().isSame(moment.utc(item.started), 'day'));
+
+      let totalSpentToday = 0;
+      let avatar = '';
+      let displayName = '';
+      let email = '';
+
+      for (const item of workLogs) {
+        totalSpentToday += item.timeSpentSeconds;
+        avatar = item.author.avatarUrls['48x48'];
+        displayName = item.author.displayName;
+        email = item.author.emailAddress;
+      }
+
+      if (totalSpentToday === 0) {
+        return { text: `Belum ada LogTime yang disubmit hari ini oleh **${author}**`, response_type: 'comment' };
+      }
+
+      const totalSpentText = ms(totalSpentToday * 1000);
+
+      let text = `
+        Nama: ${displayName}
+        Email: ${email}
+        Total LogTime hari ini: ${totalSpentText}
+        -----------------------------------------
+      `;
+
+      for (const item of workLogs) {
+        text += `
+
+          Task: [${item.issueKey}] ${item.issueName}
+          Project: ${item.project}
+          Comment: ${item.comment}
+          Time Spent: ${item.timeSpent}
+
+        `;
+      }
+
+      return { text, response_type: 'comment' };
     } catch (e) {
-      throw new UnauthorizedException();
+      console.log('[GET TODAY LOGS] ERR ', e);
+      // throw new UnauthorizedException();
+      return `User **${author}** tidak ditemukan`;
     }
   }
 
