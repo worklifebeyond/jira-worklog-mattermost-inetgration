@@ -21,6 +21,7 @@ export class ConfigService {
         jiraUser: ENVIRONMENTS.JIRA_USER,
         jiraPass: ENVIRONMENTS.JIRA_PASS,
         logTimeWebHook: ENVIRONMENTS.LOGTIME_INCOMING_WEBHOOK,
+        verify: ENVIRONMENTS.VERIFY_TOKEN,
       };
     } else {
       this.environment = Environments.DEVELOPMENT;
@@ -29,6 +30,7 @@ export class ConfigService {
         jiraUser: ENVIRONMENTS.JIRA_USER,
         jiraPass: ENVIRONMENTS.JIRA_PASS,
         logTimeWebHook: ENVIRONMENTS.LOGTIME_INCOMING_WEBHOOK,
+        verify: ENVIRONMENTS.VERIFY_TOKEN,
       };
     }
 

@@ -4,4 +4,5 @@ export class ConfigObject {
   jiraUser: string;
   jiraPass: string;
   logTimeWebHook: string;
+  verify: string;
 }

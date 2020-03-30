@@ -16,4 +16,8 @@ export class AppService {
     return await this.jiraService.pushToMatterMost(incomingDto);
   }
 
+  verify(token: string): boolean {
+    return this.jiraService.verifyToken(token);
+  }
+
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Query, UnauthorizedException } from '@nestjs/common';
 import { AppService } from './app.service';
 import { OutgoingDto } from './outgoing.dto';
 import { IncomingDto } from './incoming.dto';
@@ -9,7 +9,10 @@ export class AppController {
   }
 
   @Post('/add')
-  async addNewLogTime(@Body() incomingDto: IncomingDto) {
+  async addNewLogTime(@Body() incomingDto: IncomingDto, @Query('verify') verify) {
+    if (this.appService.verify(verify) === false) {
+      throw new UnauthorizedException();
+    }
     return this.appService.pushNewLogTime(incomingDto);
   }
 

@@ -1,7 +1,7 @@
 import { HttpService, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '../config/config.service';
 import * as moment from 'moment';
-import * as ms from 'ms';
+// import * as ms from 'ms';
 import { IncomingDto } from '../incoming.dto';
 
 @Injectable()
@@ -19,10 +19,35 @@ export class JiraService {
     });
   }
 
+  timeConversion(duration: number) {
+    const portions: string[] = [];
+
+    const msInHour = 1000 * 60 * 60;
+    const hours = Math.trunc(duration / msInHour);
+    if (hours > 0) {
+      portions.push(hours + 'h');
+      duration = duration - (hours * msInHour);
+    }
+
+    const msInMinute = 1000 * 60;
+    const minutes = Math.trunc(duration / msInMinute);
+    if (minutes > 0) {
+      portions.push(minutes + 'm');
+      duration = duration - (minutes * msInMinute);
+    }
+
+    const seconds = Math.trunc(duration / 1000);
+    if (seconds > 0) {
+      portions.push(seconds + 's');
+    }
+
+    return portions.join(' ');
+  }
+
   async pushToMatterMost(incomingDto: IncomingDto): Promise<any> {
     const url = this.configService.getConfig().logTimeWebHook;
     await this.httpService.post(url, {
-      text: `####  ${incomingDto.author} menambahkan LogTime baru!\n**Comment:**  ${incomingDto.comment}\n**Time spent:** ${ms(incomingDto.timeSpentSeconds * 1000)}`,
+      text: `####  ${incomingDto.author} menambahkan LogTime baru!\n**Comment:**  ${incomingDto.comment}\n**Time spent:** ${this.timeConversion(incomingDto.timeSpentSeconds * 1000)}`,
     }).toPromise();
     const payload = await this.getTodayWorkLogs(incomingDto.author);
     await this.httpService.post(url, {text: payload.text}).toPromise();
@@ -31,7 +56,7 @@ export class JiraService {
 
   async getTodayIssue(author: string): Promise<any> {
     try {
-      const url = `${this.configService.getConfig().jiraHost}/rest/api/2/search?jql=worklogDate >= 0d and worklogAuthor = ${author}`;
+      const url = `${this.configService.getConfig().jiraHost}/rest/api/2/search?jql=worklogDate >= -4d and worklogAuthor = ${author}`;
       const response = await this.httpService.get(url).toPromise();
       return response.data.issues;
     } catch (e) {
@@ -88,7 +113,7 @@ export class JiraService {
         return { text: `Belum ada LogTime yang disubmit hari ini oleh **${author}**`, response_type: 'comment' };
       }
 
-      const totalSpentText = ms(totalSpentToday * 1000);
+      const totalSpentText = this.timeConversion(totalSpentToday * 1000);
 
       let text = `
         Nama: ${displayName}
@@ -114,6 +139,10 @@ export class JiraService {
       // throw new UnauthorizedException();
       return `User **${author}** tidak ditemukan`;
     }
+  }
+
+  verifyToken(token: string): boolean {
+    return token === this.configService.getConfig().verify;
   }
 
 }
